@@ -1,19 +1,27 @@
-#sysinfo.sh script to show some system information
+#!/bin/bash
 
-#script command to get FQDN 
-echo FQDN:
-hostname -f
+# sysinfo.sh
+# creating variables to call the command
 
-#script command to get OperatingSystem
-echo System INFO:
-hostnamectl| grep System
+#variable for FQDN
+FQDN=$(hostname -f)
 
-#script command to get IP Address
-echo IP Address:
-hostname -i
+#variable for Operating system
+OS=$(hostnamectl| grep System)
 
-#script command to get avilable space in root file system
-echo Availabe space:
-df -h | grep File
-df -h | grep /dev/sda3
+#variable for IP Address
+IPaddress=$(hostname -i )
 
+#variable for showing Free Space
+availableSpace=$(df -h / | awk 'NR==2 {print $4}')
+
+echo Report of $(hostname) 
+
+cat <<EOF
+#####################################################
+FQDN : $FQDN
+$OS
+Ip Address :$IPaddress
+Root FIlesystem Free Space:$availableSpace
+#####################################################
+EOF
