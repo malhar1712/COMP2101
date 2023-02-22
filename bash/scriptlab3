@@ -1,0 +1,99 @@
+#!/bin/bash
+
+#Installing lxd if it is not there in system.
+which lxd > /dev/null
+if [ $? -ne 0 ]; then
+
+	echo "Installing lxd enter password if asked"
+	sudo snap install lxd
+	if [ $? -ne 0 ]; then
+	
+		echo "lxd installation fail,  Exit script"
+		exit 1
+	fi
+fi
+
+#Creating lxdbr0 interface.
+ls /sys/class/net | grep -w "lxdbr0" > /dev/null
+
+if [ $? -ne 0 ]; then
+	echo "Initializing lxd"
+	lxd init --auto > /dev/null
+	if [ $? -ne 0 ]; then
+	
+		echo "lxd initialization fail , Exit Script"
+		exit 1
+	fi
+fi
+
+
+#Creating a container running Ubuntu server named COMP2101-S22.
+
+lxc list | grep -w "COMP2101-S22" > /dev/null
+
+if [ $? -ne 0 ]; then
+	echo "Making  container COMP2101-S22 of version  Ubuntu 20.04 server"
+	lxc launch ubuntu:20.04 COMP2101-S22
+	if [ $? -ne 0 ]; then
+	
+		echo "Container not created successfully. Exit Script"
+		exit 1
+	fi	
+	while [ $(lxc list | grep -w "COMP2101-S22" | awk '{print $6}') = "|" ]; do
+		sleep 5
+	done
+fi
+
+#Adding the hostname and the container’s IP address in /etc/hosts.
+
+grep -w "COMP2101-S22" /etc/hosts > /dev/null
+
+if [ $? -ne 0 ]; then
+	##Initilizing IP and hostname##
+	ip=$(lxc list | grep -w "COMP2101-S22" | awk '{print $6}')
+	hostname="COMP2101-S22"
+	#############
+	echo "Adding COMP2101-S22 container to /etc/hosts"
+	sudo sed -i.bkp " 2a $ip\t$hostname " /etc/hosts
+	if [ $? -ne 0 ]; then
+
+		echo "initilization failed. Exit script"
+		exit 1
+	fi
+fi
+
+#Adding Apache2 server in container.
+lxc exec COMP2101-S22 -- which apache2 > /dev/null
+
+if [ $? -ne 0 ]; then
+	echo "Installing apache2 server on COMP2101-S22"
+	lxc exec COMP2101-S22 -- apt install apache2 -y > /dev/null
+	if [ $? -ne 0 ]; then
+	
+		echo "Apache2 install failed. Exit script"
+		exit 1
+	fi
+fi
+
+#Installing curl to open a web page.
+which curl > /dev/null
+
+if [ $? -ne 0 ]; then
+	sudo apt install curl -y > /dev/null
+	if [ $? -ne 0 ]; then
+	
+		echo "Curl install failed. Exit script"
+		exit 1
+	fi
+fi
+#Retrieving webpage and giving success or failure report to user.
+
+echo "displaying default web page execution from container COMP2101-S22"
+curl http://COMP2101-S22 > /dev/null
+
+if [ $? -ne 0 ]; then
+	echo "Default web page retrieval was not successful"
+else
+	echo "Default web page retrived successfully"
+fi
+exit
